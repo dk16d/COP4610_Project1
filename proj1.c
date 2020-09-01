@@ -1,4 +1,4 @@
-#THIS IS A TEST FOR OUR WORKBRANCH & LINPROG 
+//#THIS IS A TEST FOR OUR WORKBRANCH & LINPROG 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,25 +16,53 @@ tokenlist *new_tokenlist(void);
 void add_token(tokenlist *tokens, char *item);
 void free_tokens(tokenlist *tokens);
 bool IsVar(char *item);
-
+bool IsTilde(char *item);
 int main()
 {
 	while (1) {
-		printf("> ");
+		/*this is for part 3*/
+		printf("%s@%s:%s> ", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
 	
 		/* input contains the whole command
 		 * tokens contains substrings from input split by spaces
 		 */
 	
 		char *input = get_input();
-		printf("whole input: %s\n", input);
-
+		//printf("whole input: %s\n", input);
 		tokenlist *tokens = get_tokens(input);
-		for (int i = 0; i < tokens->size; i++) {
-			printf("token %d: (%s)\n", i, tokens->items[i]);
+		for (int i = 0; i < tokens->size; i++) 
+		{
+			//printf("token %d: (%s)\n", i, tokens->items[i]);
+			/*this is for part 1 and 2*/
 			if(IsVar(tokens->items[i]))
-				printf("\"%s\" NEEDS TO BE EXPANDED\n", tokens->items[i]);
+			{
+				char commando[50] = " ";
+				char commandsec[50] = " "; 
+				strcpy(commandsec,tokens->items[i]);
+				for(int v = 0; v < strlen(commandsec); v++)
+				{
+					commando[v] = commandsec[v+1];
+				}
+				printf("%s\n", getenv(commando));
+				//printf("\"%s\" NEEDS TO BE EXPANDED\n", tokens->items[i]);
+
 			//TESTING MODDED FILE
+			}
+			/*this is part 4*/
+			if(IsTilde(tokens->items[i]))
+			{
+				char commando[50] = " ";
+                                char commandsec[50] = " ";
+                                strcpy(commandsec,tokens->items[i]);
+                                for(int v = 0; v < strlen(commandsec); v++)
+                                {
+                                        commando[v] = commandsec[v+1];
+                                }
+				if(strlen(commando) == 0)
+					printf("%s\n", getenv("HOME"));
+				else
+                                	printf("%s%s\n", getenv("HOME"), commando);
+			}
 		}
 		
 		free(input);
@@ -50,6 +78,14 @@ bool IsVar(char *item)
 		return true;
 	else
 		return false;
+}
+
+bool IsTilde(char *item)
+{
+        if(item[0] == '~')
+                return true;
+        else
+                return false;
 }
 
 tokenlist *new_tokenlist(void)
