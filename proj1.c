@@ -5,8 +5,8 @@
 #include <stdbool.h>
 
 typedef struct {
-	int size;
-	char **items;
+        int size;
+        char **items;
 } tokenlist;
 
 char *get_input(void);
@@ -17,67 +17,96 @@ void add_token(tokenlist *tokens, char *item);
 void free_tokens(tokenlist *tokens);
 bool IsVar(char *item);
 bool IsTilde(char *item);
+bool CommandValid(char *commando);
+
 int main()
 {
-	while (1) {
-		/*this is for part 3*/
-		printf("%s@%s:%s> ", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
-	
-		/* input contains the whole command
-		 * tokens contains substrings from input split by spaces
-		 */
-	
-		char *input = get_input();
-		//printf("whole input: %s\n", input);
-		tokenlist *tokens = get_tokens(input);
-		for (int i = 0; i < tokens->size; i++) 
-		{
-			//printf("token %d: (%s)\n", i, tokens->items[i]);
-			/*this is for part 1 and 2*/
-			if(IsVar(tokens->items[i]))
-			{
-				char commando[50] = " ";
-				char commandsec[50] = " "; 
-				strcpy(commandsec,tokens->items[i]);
-				for(int v = 0; v < strlen(commandsec); v++)
-				{
-					commando[v] = commandsec[v+1];
-				}
-				printf("%s\n", getenv(commando));
-				//printf("\"%s\" NEEDS TO BE EXPANDED\n", tokens->items[i]);
-
-			//TESTING MODDED FILE
-			}
-			/*this is part 4*/
-			if(IsTilde(tokens->items[i]))
-			{
-				char commando[50] = " ";
-                                char commandsec[50] = " ";
+        while (1) {
+                /*this is for part 3*/
+                printf("%s@%s:%s> ", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
+        
+                /* input contains the whole command
+                 * tokens contains substrings from input split by spaces
+                 */
+        
+                char *input = get_input();
+                //printf("whole input: %s\n", input);
+                tokenlist *tokens = get_tokens(input);
+                for (int i = 0; i < tokens->size; i++) 
+                {
+						char commando[50] = " ";
+						char commandsec[50] = " "; 
+                        //printf("token %d: (%s)\n", i, tokens->items[i]);
+                        /*this is for part 1 and 2*/
+						
+			//NOTE: printf("%s\n", getenv(commando)); vvBELOWvv is problematic.
+			//  if token variable is invalid, we get a seg fault!
+			// This will be removed once fixed in part5, checking for valid paths...
+						
+                        if(IsVar(tokens->items[i]))
+                        {
                                 strcpy(commandsec,tokens->items[i]);
                                 for(int v = 0; v < strlen(commandsec); v++)
                                 {
                                         commando[v] = commandsec[v+1];
                                 }
-				if(strlen(commando) == 0)
-					printf("%s\n", getenv("HOME"));
-				else
-                                	printf("%s%s\n", getenv("HOME"), commando);
-			}
-		}
-		
-		free(input);
-		free_tokens(tokens);
-	}
+                                printf("%s\n", getenv(commando));
+                                //printf("\"%s\" NEEDS TO BE EXPANDED\n", tokens->items[i]);
+                        //TESTING MODDED FILE
+                        }
+                        /*PART 4 - Tilde detection and expansion*/
+                        if(IsTilde(tokens->items[i]))
+                        {
+                                strcpy(commandsec,tokens->items[i]);
+                                for(int v = 0; v < strlen(commandsec); v++)
+                                {
+                                        commando[v] = commandsec[v+1];
+                                }
+                                if(strlen(commando) == 0)
+                                        printf("%s\n", getenv("HOME"));
+                                else
+                                        printf("%s%s\n", getenv("HOME"), commando);
+                        }
+						
+                }
+				
+				// /*PART 5 -$PATH search for execution*/
+				// if(CommandValid(commando))
+				// {
+					// //Command valid should SEARCH
+					//begin EXECUTING command (new process)?
+				// }
+				// else
+					// PrintInvalid();
+                
+                free(input);
+                free_tokens(tokens);
+        }
 
-	return 0;
+        return 0;
+}
+
+bool CommandValid(char *commando)
+{
+	//params may need to be adjusted?
+	
+	//loop through available directiories in Path to search for the command.
+	//if exists return true.
+	//else return false.
+	return false;
+}
+
+void PrintInvalid(char *commando)
+{
+	printf("%s\n: Command not found.", commando);
 }
 
 bool IsVar(char *item)
 {
-	if(item[0] == '$')
-		return true;
-	else
-		return false;
+        if(item[0] == '$')
+                return true;
+        else
+                return false;
 }
 
 bool IsTilde(char *item)
@@ -90,73 +119,73 @@ bool IsTilde(char *item)
 
 tokenlist *new_tokenlist(void)
 {
-	tokenlist *tokens = (tokenlist *) malloc(sizeof(tokenlist));
-	tokens->size = 0;
-	tokens->items = NULL;
-	return tokens;
+        tokenlist *tokens = (tokenlist *) malloc(sizeof(tokenlist));
+        tokens->size = 0;
+        tokens->items = NULL;
+        return tokens;
 }
 
 void add_token(tokenlist *tokens, char *item)
 {
-	int i = tokens->size;
+        int i = tokens->size;
 
-	tokens->items = (char **) realloc(tokens->items, (i + 1) * sizeof(char *));
-	tokens->items[i] = (char *) malloc(strlen(item) + 1);
-	strcpy(tokens->items[i], item);
+        tokens->items = (char **) realloc(tokens->items, (i + 1) * sizeof(char *));
+        tokens->items[i] = (char *) malloc(strlen(item) + 1);
+        strcpy(tokens->items[i], item);
 
-	tokens->size += 1;
+        tokens->size += 1;
 }
 
 char *get_input(void)
 {
-	char *buffer = NULL;
-	int bufsize = 0;
+        char *buffer = NULL;
+        int bufsize = 0;
 
-	char line[5];
-	while (fgets(line, 5, stdin) != NULL) {
-		int addby = 0;
-		char *newln = strchr(line, '\n');
-		if (newln != NULL)
-			addby = newln - line;
-		else
-			addby = 5 - 1;
+        char line[5];
+        while (fgets(line, 5, stdin) != NULL) {
+                int addby = 0;
+                char *newln = strchr(line, '\n');
+                if (newln != NULL)
+                        addby = newln - line;
+                else
+                        addby = 5 - 1;
 
-		buffer = (char *) realloc(buffer, bufsize + addby);
-		memcpy(&buffer[bufsize], line, addby);
-		bufsize += addby;
+                buffer = (char *) realloc(buffer, bufsize + addby);
+                memcpy(&buffer[bufsize], line, addby);
+                bufsize += addby;
 
-		if (newln != NULL)
-			break;
-	}
+                if (newln != NULL)
+                        break;
+        }
 
-	buffer = (char *) realloc(buffer, bufsize + 1);
-	buffer[bufsize] = 0;
+        buffer = (char *) realloc(buffer, bufsize + 1);
+        buffer[bufsize] = 0;
 
-	return buffer;
+        return buffer;
 }
 
 tokenlist *get_tokens(char *input)
 {
-	char *buf = (char *) malloc(strlen(input) + 1);
-	strcpy(buf, input);
+        char *buf = (char *) malloc(strlen(input) + 1);
+        strcpy(buf, input);
 
-	tokenlist *tokens = new_tokenlist();
+        tokenlist *tokens = new_tokenlist();
 
-	char *tok = strtok(buf, " ");
-	while (tok != NULL) {
-		add_token(tokens, tok);
-		tok = strtok(NULL, " ");
-	}
+        char *tok = strtok(buf, " ");
+        while (tok != NULL) {
+                add_token(tokens, tok);
+                tok = strtok(NULL, " ");
+        }
 
-	free(buf);
-	return tokens;
+        free(buf);
+        return tokens;
 }
 
 void free_tokens(tokenlist *tokens)
 {
-	for (int i = 0; i < tokens->size; i++)
-		free(tokens->items[i]);
+        for (int i = 0; i < tokens->size; i++)
+                free(tokens->items[i]);
 
-	free(tokens);
+        free(tokens);
 }
 //this is just test
