@@ -15,14 +15,16 @@ tokenlist *get_tokens(char *input);
 tokenlist *new_tokenlist(void);
 void add_token(tokenlist *tokens, char *item);
 void free_tokens(tokenlist *tokens);
+
 bool IsVar(char *item);
+bool VarIsValid(char * item);
 bool IsTilde(char *item);
 bool CommandValid(char *commando);
 
 int main()
 {
         while (1) {
-                /*this is for part 3*/
+                /*PART 3 - Prompts user with working directory*/
                 printf("%s@%s:%s> ", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
         
                 /* input contains the whole command
@@ -50,6 +52,12 @@ int main()
                                 {
                                         commando[v] = commandsec[v+1];
                                 }
+								
+		//Must scan list of variables right here or else segfault on getenv(commando)...
+		//Look at func defintion of VarIsValid() for details.
+		//Perhaps create a variable for valid/not valid. If valid, execute, if not, display error msg.
+		//^Temporary Comment block(s) will be removed once fixed.
+								
                                 printf("%s\n", getenv(commando));
                                 //printf("\"%s\" NEEDS TO BE EXPANDED\n", tokens->items[i]);
                         //TESTING MODDED FILE
@@ -102,11 +110,27 @@ void PrintInvalid(char *commando)
 }
 
 bool IsVar(char *item)
-{
+{		
         if(item[0] == '$')
                 return true;
         else
                 return false;
+}
+
+bool VarIsValid(char * item)
+{
+	//IF IsVar() returned true in the tokenizing loop, then we check here
+	// if that variable is valid...
+	//Must scan list of variables for a match, or else it will segfault on getenv(commando)...
+	//^Comment block(s) will be removed once fixed.
+	
+	//while(item isnt found in env list){
+	//	compare to line up until an = is encountered
+	// if found return true
+	//}
+	//return false;
+	
+	return true;
 }
 
 bool IsTilde(char *item)
