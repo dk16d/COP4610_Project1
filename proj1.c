@@ -26,7 +26,7 @@ int main()
 {
         while (1) {
                 /*PART 3 - Prompts user with working directory*/
-                printf("%s@%s:%s> ", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
+                printf("%s@%s:%s> ", getenv("USER"), getenv("HOST"), getenv("PWD"));
         
                 /* input contains the whole command
                  * tokens contains substrings from input split by spaces
