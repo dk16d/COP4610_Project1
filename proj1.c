@@ -15,6 +15,7 @@ tokenlist *get_tokens(char *input);
 tokenlist *new_tokenlist(void);
 void add_token(tokenlist *tokens, char *item);
 void free_tokens(tokenlist *tokens);
+void PrintInvalid();
 
 bool IsVar(char *item);
 bool VarIsValid(char * item);
@@ -36,8 +37,9 @@ int main()
                 tokenlist *tokens = get_tokens(input);
                 for (int i = 0; i < tokens->size; i++) 
                 {
-						char commando[50] = " ";
-						char commandsec[50] = " "; 
+			char commando[50] = " ";
+			char commandsec[50] = " "; 
+			char commandpath[150] = " ";
                         //printf("token %d: (%s)\n", i, tokens->items[i]);
                         /*this is for part 1 and 2*/
 						
@@ -59,7 +61,7 @@ int main()
 		//^Temporary Comment block(s) will be removed once fixed.
 								
                                 printf("%s\n", getenv(commando));
-                                //printf("\"%s\" NEEDS TO BE EXPANDED\n", tokens->items[i]);
+                        //printf("\"%s\" NEEDS TO BE EXPANDED\n", tokens->items[i]);
                         //TESTING MODDED FILE
                         }
                         /*PART 4 - Tilde detection and expansion*/
@@ -75,18 +77,25 @@ int main()
                                 else
                                         printf("%s%s\n", getenv("HOME"), commando);
                         }
-						
+			// /*PART 5 -$PATH search for execution*/
+			if(CommandValid(tokens->items[i]))
+			{
+				strcpy(commandsec,tokens->items[i]);
+				strcpy(commandpath, getenv("PATH"));
+				char *temptr = strstr(commandpath, commandsec);
+				if(temptr != NULL)
+				{
+					printf("%s is in path\n", tokens->items[i]);
+				}
+				else
+				{
+                               		printf("%s", tokens->items[i]);
+                                	PrintInvalid();
+				}
+				// //Command valid should SEARCH
+				//begin EXECUTING command (new process)?
+			}
                 }
-				
-				// /*PART 5 -$PATH search for execution*/
-				// if(CommandValid(commando))
-				// {
-					// //Command valid should SEARCH
-					//begin EXECUTING command (new process)?
-				// }
-				// else
-					// PrintInvalid();
-                
                 free(input);
                 free_tokens(tokens);
         }
@@ -94,19 +103,21 @@ int main()
         return 0;
 }
 
-bool CommandValid(char *commando)
+bool CommandValid(char *item)
 {
-	//params may need to be adjusted?
-	
+	//params may need to be adjusted? **fixed
+	if(item[0] == '/')
+		return true;
+	else
+		return false;
 	//loop through available directiories in Path to search for the command.
 	//if exists return true.
 	//else return false.
-	return false;
 }
 
-void PrintInvalid(char *commando)
+void PrintInvalid()
 {
-	printf("%s\n: Command not found.", commando);
+	printf(": Command not found.\n");
 }
 
 bool IsVar(char *item)
