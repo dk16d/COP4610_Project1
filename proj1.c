@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 typedef struct {
         int size;
@@ -39,7 +41,7 @@ int main()
                 {
 			char commando[50] = " ";
 			char commandsec[50] = " "; 
-			char commandpath[150] = " ";
+			char commandpath[15000] = " ";
                         //printf("token %d: (%s)\n", i, tokens->items[i]);
                         /*this is for part 1 and 2*/
 						
@@ -54,7 +56,7 @@ int main()
                                 {
                                         commando[v] = commandsec[v+1];
                                 }
-								
+				
 		//Must scan list of variables right here or else segfault on getenv(commando)...
 		//Look at func defintion of VarIsValid() for details.
 		//Perhaps create a variable for valid/not valid. If valid, execute, if not, display error msg.
@@ -83,8 +85,27 @@ int main()
 				strcpy(commandsec,tokens->items[i]);
 				strcpy(commandpath, getenv("PATH"));
 				char *temptr = strstr(commandpath, commandsec);
+
 				if(temptr != NULL)
 				{
+					/*pid_t waitpid(
+						pid_t pid, 
+						int *stat_loc, 
+						int options
+						);*/
+					int pid = fork();
+
+					if(pid == 0)
+					{
+						char *const argv[] = {/usr/bin/tokens->items[i], "-a", NULL};
+						execv("ls", argv);
+						exit(0);
+					}
+					else
+					{
+						//if(waitpid(pid, NULL, 0) == -1)
+							
+					}
 					printf("%s is in path\n", tokens->items[i]);
 				}
 				else

@@ -42,7 +42,8 @@ tokenlist *new_tokenlist(void)
 {
 	tokenlist *tokens = (tokenlist *) malloc(sizeof(tokenlist));
 	tokens->size = 0;
-	tokens->items = NULL;
+	tokens->items = (char **) malloc(sizeof(char *));
+	tokens->items[0] = NULL; /* make NULL terminated */
 	return tokens;
 }
 
@@ -50,8 +51,9 @@ void add_token(tokenlist *tokens, char *item)
 {
 	int i = tokens->size;
 
-	tokens->items = (char **) realloc(tokens->items, (i + 1) * sizeof(char *));
+	tokens->items = (char **) realloc(tokens->items, (i + 2) * sizeof(char *));
 	tokens->items[i] = (char *) malloc(strlen(item) + 1);
+	tokens->items[i + 1] = NULL;
 	strcpy(tokens->items[i], item);
 
 	tokens->size += 1;
