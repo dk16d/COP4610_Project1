@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 typedef struct {
         int size;
@@ -17,6 +18,7 @@ void add_token(tokenlist *tokens, char *item);
 void free_tokens(tokenlist *tokens);
 void PrintInvalid();
 
+bool list(char *item);
 bool IsVar(char *item);
 bool VarIsValid(char * item);
 bool IsTilde(char *item);
@@ -77,23 +79,69 @@ int main()
                                 else
                                         printf("%s%s\n", getenv("HOME"), commando);
                         }
-			// /*PART 5 -$PATH search for execution*/
-			if(CommandValid(tokens->items[i]))
+			
+
+// /*PART 5 -$PATH search for execution*/
+
+			if (list(tokens->items[i]))	//check if this is a ls command
 			{
-				strcpy(commandsec,tokens->items[i]);
-				strcpy(commandpath, getenv("PATH"));
-				char *temptr = strstr(commandpath, commandsec);
-				if(temptr != NULL)
+				printf("registered as list command\n");
+				if (tokens->size == 1)				//ls is the only command, no arguments
 				{
-					printf("%s is in path\n", tokens->items[i]);
+					printf("ls but doesn't specify a path\n");
 				}
-				else
+				else if(CommandValid(tokens->items[i+1]) && tokens->size > 1)		//ls command, path argument
 				{
-                               		printf("%s", tokens->items[i]);
-                                	PrintInvalid();
+					printf("is working and is path\n");
+					strcpy(commandsec,tokens->items[i]);
+					strcpy(commandpath, getenv("PATH"));
+
+					char str1[3] = "/ls";
+						
+					//parse path by delimiters
+					char delim[] = ":";
+					char *ptr = strtok(commandpath, delim);
+                                        printf("%s\n", ptr);
+					
+					int i;
+					i = 0;
+					int size;
+					size = 0;
+					char *array[50];
+					
+
+					//printing separated directories
+					while(ptr != NULL)			//putting parsed directories into array
+					{
+						array[i++] = ptr;		
+						printf("'%s'\n", ptr);
+						ptr = strtok(NULL, delim);
+						size++;
+					}
+
+					char hold[20];
+
+					    for (i = 0; i < size; i++)		//just seeing if the path is parsed correctly
+					    {
+        					printf("array before added command is: %s\n", array[i]);
+					    }
+
+					    for (i = 0; i < size; i++)
+					    {
+						strcpy(hold,array[i]);		//gets parsed directory from array
+						strcat(hold, str1);		//adds /ls to path
+						//check if hold exists here
+                                                if(access(hold,F_OK) == 0)	//checks if the file exists with added \ls
+                                                	printf("file exists at %s\n", hold);
+                                        	else
+                                                	printf("file does not exist at %s\n", hold);
+					    }
+			
 				}
-				// //Command valid should SEARCH
-				//begin EXECUTING command (new process)?
+				else						//error checking for invalid input with ls
+				{
+					printf("invalid input\n");
+				}
 			}
                 }
                 free(input);
@@ -150,6 +198,14 @@ bool IsTilde(char *item)
                 return true;
         else
                 return false;
+}
+
+bool list(char *item)
+{
+	if(item[0] == 'l' && item[1] == 's')
+		return true;
+	else
+		return false;
 }
 
 tokenlist *new_tokenlist(void)
