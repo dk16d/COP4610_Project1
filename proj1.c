@@ -1,9 +1,9 @@
-//#THIS IS A TEST FOR OUR WORKBRANCH & LINPROG 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 typedef struct {
         int size;
@@ -18,79 +18,126 @@ void add_token(tokenlist *tokens, char *item);
 void free_tokens(tokenlist *tokens);
 void PrintInvalid();
 
-bool list(char *item);
-bool IsVar(char *item);
+
 bool VarIsValid(char * item);
 bool IsTilde(char *item);
 bool CommandValid(char *commando);
 
+//new test functions
+bool IsVar(char *item);
+bool IsPath(char *str);
+bool FileInDir(char *str);
+
 int main()
 {
-        while (1) {
-                /*PART 3 - Prompts user with working directory*/
-                printf("%s@%s:%s> ", getenv("USER"), getenv("HOST"), getenv("PWD"));
-        
-                /* input contains the whole command
-                 * tokens contains substrings from input split by spaces
-                 */
-        
-                char *input = get_input();
-                //printf("whole input: %s\n", input);
-                tokenlist *tokens = get_tokens(input);
-                for (int i = 0; i < tokens->size; i++) 
-                {
-			char commando[50] = " ";
-			char commandsec[50] = " "; 
-			char commandpath[150] = " ";
-                        //printf("token %d: (%s)\n", i, tokens->items[i]);
-                        /*this is for part 1 and 2*/
-						
-			//NOTE: printf("%s\n", getenv(commando)); vvBELOWvv is problematic.
-			//  if token variable is invalid, we get a seg fault!
-			// This will be removed once fixed in part5, checking for valid paths...
-						
-                        if(IsVar(tokens->items[i]))
-                        {
-                                strcpy(commandsec,tokens->items[i]);
-                                for(int v = 0; v < strlen(commandsec); v++)
-                                {
-                                        commando[v] = commandsec[v+1];
-                                }
-								
-		//Must scan list of variables right here or else segfault on getenv(commando)...
-		//Look at func defintion of VarIsValid() for details.
-		//Perhaps create a variable for valid/not valid. If valid, execute, if not, display error msg.
-		//^Temporary Comment block(s) will be removed once fixed.
-								
-                                printf("%s\n", getenv(commando));
-                        //printf("\"%s\" NEEDS TO BE EXPANDED\n", tokens->items[i]);
-                        //TESTING MODDED FILE
-                        }
-                        /*PART 4 - Tilde detection and expansion*/
-                        if(IsTilde(tokens->items[i]))
-                        {
-                                strcpy(commandsec,tokens->items[i]);
-                                for(int v = 0; v < strlen(commandsec); v++)
-                                {
-                                        commando[v] = commandsec[v+1];
-                                }
-                                if(strlen(commando) == 0)
-                                        printf("%s\n", getenv("HOME"));
-                                else
-                                        printf("%s%s\n", getenv("HOME"), commando);
-                        }
-			
+	bool execute = true;					   //Flag is set false on invalid command.
+	while (1) {								   
+		printf("%s@%s:%s> ", getenv("USER"), getenv("HOST"), getenv("PWD"));
+											   /*PART 3 - Prompts user w/ working directory*/
+		char *input = get_input();
+		tokenlist *tokens = get_tokens(input);
+		//printf("whole input: %s\n", input);
 
-// /*PART 5 -$PATH search for execution*/
-
-			if (list(tokens->items[i]))	//check if this is a ls command
-			{
-				printf("registered as list command\n");
-				if (tokens->size == 1)				//ls is the only command, no arguments
-				{
-					printf("ls but doesn't specify a path\n");
+		for (int i = 0; i < tokens->size; i++) //Begin COMMAND EXPANSION loop.
+		{
+			char commando[50];			   	   //Declare modded-token buffer.
+				
+			if(IsVar(tokens->items[i]))	   	   //If token is an env variable...
+			{								   //Strip '$' from variable.
+				for(int v = 0; v < strlen(tokens->items[i]); v++)
+				{							   //Copy it into commando.
+					commando[v] = (tokens->items[i])[v+1];
 				}
-				else if(CommandValid(tokens->items[i+1]) && tokens->size > 1)		//ls command, path argument
+				
+				if(getenv(commando) != NULL)   //IF variable exists...
+				{							   //Allocate space for var expansion.
+					tokens->items[i] = (char *) realloc(tokens->items[i],
+						strlen(getenv(commando)) + 1);
+					strcpy(tokens->items[i], getenv(commando));
+				}							   //Copy expanded string to token list.
+				else						   //ELSE print error, do not execute.
+				{
+					strcpy(tokens->items[i], commando);
+					printf("%s: Undefined variable.\n");
+					execute = false;
+				}	
+			}
+											   /*PART 4 - '~' expansion*/
+			if(IsTilde(tokens->items[i]))
+			{								   //Strip the '~'.
+				char commandsec[50];		   //(sec prevents modding of the
+											   // underlying env variable.)
+				for(int v = 0; v < strlen(tokens->items[i]); v++)
+				{							   //Copy the rest into commando.
+					commando[v] = (tokens->items[i])[v+1];
+				}							   //Copy HOME path into sec.
+				strcpy(commandsec, getenv("HOME"));
+											   //Realloc space for expansion.	
+				tokens->items[i] = (char *) realloc(tokens->items[i],
+					strlen(commandsec) + strlen(commando) + 1);
+				strcpy(tokens->items[i], strcat(commandsec, commando));		  
+			}								   //Concat path onto expansion
+											   // and copy to token list.
+			printf("ToKeN %d: (%s)\n", i, tokens->items[i]);
+		}
+
+
+				if (tokens->size == 1)				//only commandline argument is command
+				{
+					char command[50];
+					char commandpath[100];
+					char attach[3] = "/"; 
+					strcpy(commandpath, getenv("PATH"));
+  					strcpy(command, tokens->items[0]);	//stores whatever command from commandline to command
+					strcat(attach, command);		//attach = "/" + command example: ls is now /ls
+					
+
+					//parse path by delimiters
+                                        char delim[] = ":";
+                                        char *ptr = strtok(commandpath, delim);
+                                        printf("%s\n", ptr);
+
+                                        int i;
+                                        i = 0;
+                                        int size;
+                                        size = 0;
+                                        char *array[50];
+
+
+                                        //printing separated directories
+                                        while(ptr != NULL)                      //putting parsed directories into array
+                                        {
+                                                array[i++] = ptr;
+                                                printf("'%s'\n", ptr);
+                                                ptr = strtok(NULL, delim);
+                                                size++;
+                                        }
+
+                                        char hold[20];
+
+                                            for (i = 0; i < size; i++)          //just seeing if the path is parsed correctly
+                                            {
+                                             	printf("array before added command is: %s\n", array[i]);
+                                            }
+
+                                            for (i = 0; i < size; i++)
+                                            {
+                                             	strcpy(hold,array[i]);          //gets parsed directory from array
+                                                strcat(hold, attach);             //adds /command to path
+						 //check if hold exists here
+                                                if(access(hold,F_OK) == 0)	//checks if the file exists with added \ls
+                                                        printf("file exists at %s\n", hold);
+                                                else
+                                                        printf("file does not exist at %s\n", hold);
+                                            }
+
+
+				}
+
+
+
+
+				/*else if(CommandValid(tokens->items[i+1]) && tokens->size > 1)		//ls command, path argument
 				{
 					printf("is working and is path\n");
 					strcpy(commandsec,tokens->items[i]);
@@ -137,59 +184,99 @@ int main()
                                                 	printf("file does not exist at %s\n", hold);
 					    }
 			
-				}
+				}*/
 				else						//error checking for invalid input with ls
 				{
 					printf("invalid input\n");
 				}
-			}
-                }
-                free(input);
-                free_tokens(tokens);
-        }
+                
 
-        return 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				// // /*PART 5 -$PATH search for execution*/
+				// if(CommandValid(tokens->items[i]))
+				// {
+						// strcpy(commandsec,tokens->items[i]);
+						// strcpy(commandpath, getenv("PATH"));
+						// char *temptr = strstr(commandpath, commandsec);
+
+						// if(temptr != NULL)
+						// {
+								// /*pid_t waitpid(
+										// pid_t pid, 
+										// int *stat_loc, 
+										// int options
+										// );*/
+								// int pid = fork();
+
+								// if(pid == 0)
+								// {
+										// char *const argv[] = {/usr/bin/tokens->items[i], "-a", NULL};
+										// execv("ls", argv);
+										// exit(0);
+								// }
+								// else
+								// {
+										// //if(waitpid(pid, NULL, 0) == -1)
+												
+								// }
+								// printf("%s is in path\n", tokens->items[i]);
+						// }
+						// else
+						// {
+								// printf("%s", tokens->items[i]);
+								// PrintInvalid();
+						// }
+						// // //Command valid should SEARCH
+						// //begin EXECUTING command (new process)?
+				// }
+		free(input);
+		free_tokens(tokens);
+	}
+
+	return 0;
 }
 
-bool CommandValid(char *item)
+bool IsPath(char *str)
 {
-	//params may need to be adjusted? **fixed
-	if(item[0] == '/')
+	if(str[0] == '/')
 		return true;
 	else
 		return false;
-	//loop through available directiories in Path to search for the command.
-	//if exists return true.
-	//else return false.
 }
 
-void PrintInvalid()
-{
-	printf(": Command not found.\n");
+bool FileInDir(char *str)					//If command is a file in one of the $PATH
+{											// directories, run it. Else print error.
+	char *directories=(char*)malloc(sizeof(char)*(strlen(getenv("PATH"))));
+	strcpy(directories, getenv("PATH"));	//Creates str of all directories in PATH.
+	
+	
+	if(1)
+	{	//command runs
+	}
+	else
+		printf("%s: Command not found.");
 }
 
 bool IsVar(char *item)
-{		
+{               
         if(item[0] == '$')
                 return true;
         else
                 return false;
-}
-
-bool VarIsValid(char * item)
-{
-	//IF IsVar() returned true in the tokenizing loop, then we check here
-	// if that variable is valid...
-	//Must scan list of variables for a match, or else it will segfault on getenv(commando)...
-	//^Comment block(s) will be removed once fixed.
-	
-	//while(item isnt found in env list){
-	//	compare to line up until an = is encountered
-	// if found return true
-	//}
-	//return false;
-	
-	return true;
 }
 
 bool IsTilde(char *item)
@@ -200,28 +287,55 @@ bool IsTilde(char *item)
                 return false;
 }
 
-bool list(char *item)
+bool CommandValid(char *item)
 {
-	if(item[0] == 'l' && item[1] == 's')
-		return true;
-	else
-		return false;
+        //params may need to be adjusted? **fixed
+        if(item[0] == '/')
+                return true;
+        else
+                return false;
+        //loop through available directiories in Path to search for the command.
+        //if exists return true.
+        //else return false.
+}
+
+void PrintInvalid()
+{
+        printf(": Command not found.\n");
+}
+
+bool VarIsValid(char * item)
+{
+        //IF IsVar() returned true in the tokenizing loop, then we check here
+        // if that variable is valid...
+        //Must scan list of variables for a match, or else it will segfault on getenv(commando)...
+        //^Comment block(s) will be removed once fixed.
+        
+        //while(item isnt found in env list){
+        //      compare to line up until an = is encountered
+        // if found return true
+        //}
+        //return false;
+        
+        return true;
 }
 
 tokenlist *new_tokenlist(void)
 {
-        tokenlist *tokens = (tokenlist *) malloc(sizeof(tokenlist));
-        tokens->size = 0;
-        tokens->items = NULL;
-        return tokens;
+       tokenlist *tokens = (tokenlist *) malloc(sizeof(tokenlist));
+	   tokens->size = 0;
+	   tokens->items = (char **) malloc(sizeof(char *));
+	   tokens->items[0] = NULL; /* make NULL terminated */
+	   return tokens;
 }
 
 void add_token(tokenlist *tokens, char *item)
 {
         int i = tokens->size;
 
-        tokens->items = (char **) realloc(tokens->items, (i + 1) * sizeof(char *));
+        tokens->items = (char **) realloc(tokens->items, (i + 2) * sizeof(char *));
         tokens->items[i] = (char *) malloc(strlen(item) + 1);
+		tokens->items[i + 1] = NULL;
         strcpy(tokens->items[i], item);
 
         tokens->size += 1;
@@ -279,4 +393,3 @@ void free_tokens(tokenlist *tokens)
 
         free(tokens);
 }
-//this is just test
