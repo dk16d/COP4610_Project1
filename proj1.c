@@ -21,30 +21,32 @@ void PrintInvalid();
 
 
 bool VarIsValid(char * item);
-bool IsTilde(char *item);
-bool CommandValid(char *commando);
 
-//new test functions
+//working functions
 bool IsVar(char *item);
 bool IsPath(char *str);
 bool FileInDir(char *str);
+bool IsTilde(char *item);
+bool IsDir(char *item);
 
 int main()
 {
 	bool execute = true;					   //Flag is set false on invalid command.
-	while (1) {								   
+	int x = 0;
+	while (x < 14) {		
+		x += 1;
 		printf("%s@%s:%s> ", getenv("USER"), getenv("HOST"), getenv("PWD"));
-											   /*PART 3 - Prompts user w/ working directory*/
+											   /*PART 3 - Prints user's working directory*/
 		char *input = get_input();
 		tokenlist *tokens = get_tokens(input);
 		//printf("whole input: %s\n", input);
 
-		for (int i = 0; i < tokens->size; i++) //Begin COMMAND EXPANSION loop.
+		for (int i = 0; i < tokens->size; i++) //Begin VARIABLE EXPANSION loop.
 		{
 			char commando[50];			   	   //Declare modded-token buffer.
 				
 			if(IsVar(tokens->items[i]))	   	   //If token is an env variable...
-			{								   //Strip '$' from variable.
+			{								   //Strip '$' from token.
 				for(int v = 0; v < strlen(tokens->items[i]); v++)
 				{							   //Copy it into commando.
 					commando[v] = (tokens->items[i])[v+1];
@@ -53,7 +55,7 @@ int main()
 				if(getenv(commando) != NULL)   //IF variable exists...
 				{							   //Allocate space for var expansion.
 					tokens->items[i] = (char *) realloc(tokens->items[i],
-						strlen(getenv(commando)) + 1);
+						sizeof(char) * (strlen(getenv(commando)) + 1));
 					strcpy(tokens->items[i], getenv(commando));
 				}							   //Copy expanded string to token list.
 				else						   //ELSE print error, do not execute.
@@ -75,11 +77,56 @@ int main()
 				strcpy(commandsec, getenv("HOME"));
 											   //Realloc space for expansion.	
 				tokens->items[i] = (char *) realloc(tokens->items[i],
-					strlen(commandsec) + strlen(commando) + 1);
+					sizeof(char) * (strlen(commandsec) + strlen(commando) + 1));
 				strcpy(tokens->items[i], strcat(commandsec, commando));		  
 			}								   //Concat path onto expansion
 											   // and copy to token list.
 			printf("ToKeN %d: (%s)\n", i, tokens->items[i]);
+		}
+
+		if(execute && !IsDir(tokens->items[0])) //If no token errors yet...
+		{										//Begin COMMAND EXPANSION.
+			char *dirPaths = (char *) malloc(sizeof(char) * (strlen(getenv("PATH")) + 1));
+			strcpy(dirPaths, getenv("PATH"));	//Make safe copy of paths.
+			char *path = strtok(dirPaths, ":"); //Assign first possible path.
+			char cmd[16];						//Temporary store token[0]
+			strncpy(cmd, tokens->items[0], 15); // into cmd.
+			bool pathFound = false;
+			
+			while(path != NULL)					//Check paths until cmd is found.
+			{									//Temporarily save command token[0].
+				tokens->items[0] = (char *) realloc(tokens->items[0],
+					sizeof(char) * (strlen(path) + strlen(cmd) + 2));
+				strcpy(tokens->items[0], path);	//After alloc'ing for concatenation,
+				strcat(tokens->items[0], "/");	// concatenate "/cmd" onto token.
+				strcat(tokens->items[0], cmd);
+				printf("CONCAT'D PATH IS: %s\n", tokens->items[0]);
+				
+				if(access(tokens->items[0], F_OK) == 0)		
+				{								//IF command is found in path,
+					pathFound = true;			// no more seaching needed!
+					printf("file exists at: %s\n", path);
+					break;
+				}
+				else							//Else, not yet found, assign
+					path = strtok(NULL, ":");  	// next path and try again.
+			}
+			
+			if(pathFound)						//If found, execute it!
+			{									//Create child process. Since there
+				int pid = fork();				// is now two processes running...
+				if(pid == 0)					//If child process, execute.
+					execv(tokens->items[0], tokens->items);
+				else							//If parent (main), wait your turn.
+					waitpid(pid, NULL, 0);
+			}
+			else								//ELSE, path was never found.
+				printf("%s: Command not found.");
+			
+			
+			
+			
+			free(dirPaths);
 		}
 				// // /*PART 5 -$PATH search for execution*/
 				// if(CommandValid(tokens->items[i]))
@@ -162,16 +209,12 @@ bool IsTilde(char *item)
                 return false;
 }
 
-bool CommandValid(char *item)
+bool IsDir(char *item)
 {
-        //params may need to be adjusted? **fixed
         if(item[0] == '/')
                 return true;
         else
                 return false;
-        //loop through available directiories in Path to search for the command.
-        //if exists return true.
-        //else return false.
 }
 
 void PrintInvalid()
@@ -268,3 +311,4 @@ void free_tokens(tokenlist *tokens)
 
         free(tokens);
 }
+//this is just test
