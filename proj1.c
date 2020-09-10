@@ -32,9 +32,12 @@ bool IsDir(char *item);
 int main()
 {
 	bool execute = true;					   //Flag is set false on invalid command.
-	int x = 0;
-	while (x < 14) {		
-		x += 1;
+	while (1) {	
+
+//FOR PIPING/REDIRECTION, may need an if( redirecting() ) encapsulating the
+// printf commandline and command-expansion loop. That way we can make use
+// of the main while loop to feed one process into another...
+	
 		printf("%s@%s:%s> ", getenv("USER"), getenv("HOST"), getenv("PWD"));
 											   /*PART 3 - Prints user's working directory*/
 		char *input = get_input();
