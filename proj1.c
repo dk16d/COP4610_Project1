@@ -24,10 +24,12 @@ bool VarIsValid(char * item);
 
 //working functions
 bool IsVar(char *item);
-bool IsPath(char *str);
-bool FileInDir(char *str);
+bool IsPath(char *item);
+bool FileInDir(char *item);
 bool IsTilde(char *item);
 bool IsDir(char *item);
+bool IsInput(char *item);
+bool IsOutput(char *item);
 
 int main()
 {
@@ -83,7 +85,36 @@ int main()
 					sizeof(char) * (strlen(commandsec) + strlen(commando) + 1));
 				strcpy(tokens->items[i], strcat(commandsec, commando));		  
 			}								   //Concat path onto expansion
-											   // and copy to token list.
+			if(IsInput(tokens->items[i]))
+                	{
+                        	if( access( tokens->items[i+1], F_OK ) != -1 )
+                        	{
+                               		
+                        	}
+                        	else
+                        	{
+                                	printf("file doesn't exist");
+                        	}
+                	}
+			if(IsOutput(tokens->items[i]))
+                        {
+                                if( access( tokens->items[i+1], F_OK ) == -1 )
+                                {
+					char *myargs [] = {"touch", tokens->items[i+1]};
+					int pid = fork();                              
+					if(pid == 0)                                   
+                                        	execv(myargs[0], myargs); /*THIS IS THE PORBLEM I AM RUNNING INTO... IDK WHY THIS FUNCTION IS NOT WORKING*/
+                                	else                                                 
+                                        	waitpid(pid, NULL, 0);
+
+					//does not exsit
+                                }
+                                else
+                                {
+                                        printf("file does exist");
+                                }
+                        }
+					   // and copy to token list.
 			printf("ToKeN %d: (%s)\n", i, tokens->items[i]);
 		}
 
@@ -103,7 +134,7 @@ int main()
 				strcpy(tokens->items[0], path);	//After alloc'ing for concatenation,
 				strcat(tokens->items[0], "/");	// concatenate "/cmd" onto token.
 				strcat(tokens->items[0], cmd);
-				printf("CONCAT'D PATH IS: %s\n", tokens->items[0]);
+			//	printf("CONCAT'D PATH IS: %s\n", tokens->items[0]);
 				
 				if(access(tokens->items[0], F_OK) == 0)		
 				{								//IF command is found in path,
@@ -124,50 +155,13 @@ int main()
 					waitpid(pid, NULL, 0);
 			}
 			else								//ELSE, path was never found.
-				printf("%s: Command not found.");
+				printf("%s: Command not found.\n");
 			
 			
 			
 			
 			free(dirPaths);
 		}
-				// // /*PART 5 -$PATH search for execution*/
-				// if(CommandValid(tokens->items[i]))
-				// {
-						// strcpy(commandsec,tokens->items[i]);
-						// strcpy(commandpath, getenv("PATH"));
-						// char *temptr = strstr(commandpath, commandsec);
-
-						// if(temptr != NULL)
-						// {
-								// /*pid_t waitpid(
-										// pid_t pid, 
-										// int *stat_loc, 
-										// int options
-										// );*/
-								// int pid = fork();
-
-								// if(pid == 0)
-								// {
-										// char *const argv[] = {/usr/bin/tokens->items[i], "-a", NULL};
-										// execv("ls", argv);
-										// exit(0);
-								// }
-								// else
-								// {
-										// //if(waitpid(pid, NULL, 0) == -1)
-												
-								// }
-								// printf("%s is in path\n", tokens->items[i]);
-						// }
-						// else
-						// {
-								// printf("%s", tokens->items[i]);
-								// PrintInvalid();
-						// }
-						// // //Command valid should SEARCH
-						// //begin EXECUTING command (new process)?
-				// }
 		free(input);
 		free_tokens(tokens);
 	}
@@ -175,15 +169,31 @@ int main()
 	return 0;
 }
 
-bool IsPath(char *str)
+bool IsInput(char *item)
 {
-	if(str[0] == '/')
+        if(item[0] == '<')
+                return true;
+        else
+                return false;	
+}
+
+bool IsOutput(char *item)
+{
+        if(item[0] == '>')
+                return true;
+        else
+                return false;
+}
+
+bool IsPath(char *item)
+{
+	if(item[0] == '/')
 		return true;
 	else
 		return false;
 }
 
-bool FileInDir(char *str)					//If command is a file in one of the $PATH
+bool FileInDir(char *item)					//If command is a file in one of the $PATH
 {											// directories, run it. Else print error.
 	char *directories=(char*)malloc(sizeof(char)*(strlen(getenv("PATH"))));
 	strcpy(directories, getenv("PATH"));	//Creates str of all directories in PATH.
