@@ -1,0 +1,44 @@
+                        if (strchr(input, '&') != NULL)         //& EXISTS, IS BACKGROUND PROCESS
+                        {
+                                printf("is background process");
+                                for (int i = 0; i < 10; i++)
+                                {
+                                        if (parray[i] == -1)
+                                        {
+                                                int pid = fork();
+                                                parray[i] = getpid();
+
+						//how do i execute background process???
+
+                                                break;
+                                        }
+                                }
+                        }
+
+
+
+                        //while other things are executing
+                        //after every prompt
+                        for (int i = 0; i < 10; i++)
+                        {
+                                if(parray[i] == -1)	//if -1, slot is empty don't do anything
+                                        break;
+       	       	       	
+                                else{
+                                pid_t status = waitpid(parray[i], NULL, WNOHANG);
+
+                                //check if child is finished or if its still running
+                                if (status != 0)        //tells if process is finished or not
+                                {
+
+                                        //print - process is finished
+                                        printf("[%d]+ Done\t\t", i+1);
+                                        printf("%s\t\t", input);            //PRINT WHOLE COMMAND LINE NEED TO GET RID OF &
+                                }
+                                else //process is still running
+                                {
+					//do nothing
+                                }
+                                }
+                        }//end while loop
+
