@@ -30,6 +30,7 @@ bool IsTilde(char *item);
 bool IsDir(char *item);
 bool IsInput(char *item);
 bool IsOutput(char *item);
+bool IsPipe(char *item);
 
 int main()
 {
@@ -89,7 +90,19 @@ int main()
                 	{
                         	if( access( tokens->items[i+1], F_OK ) != -1 )
                         	{
-                               		
+                               		FILE *ip;
+   					char temp[300];
+  					ip = fopen(tokens->items[i+1], "r");
+   					fgets(temp, 300, (FILE*)ip);
+					char address[300];
+					strcpy(address, "/usr/bin/");
+					strcpy(address, tokens->items[i+1]);
+					char *myargs [] = {address, temp};
+					int pid = fork();
+                                        if(pid == 0)
+                                             execv(myargs[0], myargs);
+                                        else
+                                                waitpid(pid, NULL, 0);
                         	}
                         	else
                         	{
@@ -100,22 +113,40 @@ int main()
                         {
                                 if( access( tokens->items[i+1], F_OK ) == -1 )
                                 {
-					char *myargs [] = {"touch", tokens->items[i+1]};
+					char *myargs [] = {"/usr/bin/touch", tokens->items[i+1]};
 					int pid = fork();                              
 					if(pid == 0)                                   
-                                        	execv(myargs[0], myargs); /*THIS IS THE PORBLEM I AM RUNNING INTO... IDK WHY THIS FUNCTION IS NOT WORKING*/
+                                        	execv(myargs[0], myargs);
                                 	else                                                 
                                         	waitpid(pid, NULL, 0);
-
-					//does not exsit
                                 }
-                                else
-                                {
-                                        printf("file does exist");
-                                }
+				if(tokens->size == 4)
+				{
+					FILE *op;
+   					op = fopen(tokens->items[i+1], "w+");
+   					fprintf(op, "%s", tokens->items[i-1]);
+   					fclose(op);
+                               	}
+				else
+				{
+					char word[300];
+					for(int y = 0; y < (tokens->size - 3); y++)
+					{
+						strcat(word, tokens->items[y+1]);
+						strcat(word, " ");
+					}
+					FILE *op;
+                                        op = fopen(tokens->items[i+1], "w+");
+                                        fprintf(op, "%s", word);
+                                        fclose(op);
+				}
                         }
+			if (IsPipe(tokens->items[i]))
+			{
+				
+			}
 					   // and copy to token list.
-			printf("ToKeN %d: (%s)\n", i, tokens->items[i]);
+		//	printf("ToKeN %d: (%s)\n", i, tokens->items[i]);
 		}
 
 		if(execute && !IsDir(tokens->items[0])) //If no token errors yet...
@@ -139,7 +170,7 @@ int main()
 				if(access(tokens->items[0], F_OK) == 0)		
 				{								//IF command is found in path,
 					pathFound = true;			// no more seaching needed!
-					printf("file exists at: %s\n", path);
+			//		printf("file exists at: %s\n", path);
 					break;
 				}
 				else							//Else, not yet found, assign
@@ -180,6 +211,14 @@ bool IsInput(char *item)
 bool IsOutput(char *item)
 {
         if(item[0] == '>')
+                return true;
+        else
+                return false;
+}
+
+bool IsPipe(char *item)
+{
+        if(item[0] == '|')
                 return true;
         else
                 return false;
