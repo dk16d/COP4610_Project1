@@ -24,3 +24,5 @@ Darren Kopacz:
 * Added variable dectection for PART 2. [ Ex) dectects '$' in $USER ].
 * Optimizations for PART 2, removed redundant variable initalization.
 * Added function prototypes and codeblock structure for PART 5.
+* Included error checking for environment variables.
+* Reworked Part 1 through Part 4 to save all expansions in token list.
