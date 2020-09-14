@@ -13,7 +13,8 @@ COP4610 - Project 1
 
 
 ~~~ KNOWN ISSUES ~~~
-...
+Background execution does not work with I/O redirection or piping as they
+ were implemeted separately.
 
 
 
