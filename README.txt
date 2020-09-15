@@ -7,15 +7,33 @@ COP4610 - Project 1
 ******************************************************************************
 
 ~~~ SUMMARY ~~~
-...
+File listing:
+proj1.c
+makefile
+README.text
+
+Makefile description: 
+run make, type ./shell
+
+
+shell: proj1.o
+	gcc -std=c99 -o shell proj1.o
+
+proj1.o: proj1.c
+	gcc -std=c99 -c proj1.c
+
+clean:
+	rm *.o shell
 
 
 
 
 ~~~ KNOWN ISSUES ~~~
-...
-
-
+Part 9 - Background Processing: Processes "stack" on top of one another; Once they have finished they do not exit the array. 
+                                Does not support piping or redirection.
+Part 10 - Jobs & cd not implemented 
+          exit does not wait for any background processes that are still running
+          does not prints the number of commands (external and internal) executed
 
 
 ~~~ CONTRIBUTIONS ~~~
@@ -38,4 +56,5 @@ Riley Corey:
 * Attempted optimization for background processing with Darren.
 * Wrote original makefile
 
+~~~ GIT COMMIT LOG ~~~
 
