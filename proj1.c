@@ -46,13 +46,14 @@ int main()
 		char *input = get_input();
 		tokenlist *tokens = get_tokens(input);
 		//printf("whole input: %s\n", input);
-
+		int q = 0;
 		for (int i = 0; i < tokens->size; i++) //Begin VARIABLE EXPANSION loop.
 		{
 			char commando[50];			   	   //Declare modded-token buffer.
 				
 			if(IsVar(tokens->items[i]))	   	   //If token is an env variable...
-			{								   //Strip '$' from token.
+			{	
+				q++;							   //Strip '$' from token.
 				for(int v = 0; v < strlen(tokens->items[i]); v++)
 				{							   //Copy it into commando.
 					commando[v] = (tokens->items[i])[v+1];
@@ -73,7 +74,8 @@ int main()
 			}
 											   /*PART 4 - '~' expansion*/
 			if(IsTilde(tokens->items[i]))
-			{								   //Strip the '~'.
+			{	
+				q++;							   //Strip the '~'.
 				char commandsec[50];		   //(sec prevents modding of the
 											   // underlying env variable.)
 				for(int v = 0; v < strlen(tokens->items[i]); v++)
@@ -88,7 +90,8 @@ int main()
 			}								   //Concat path onto expansion
 			if(IsInput(tokens->items[i]))
                 	{
-                        	if( access( tokens->items[i+1], F_OK ) != -1 )
+                        	q++;
+				if( access( tokens->items[i+1], F_OK ) != -1 )
                         	{
                                		FILE *ip;
    					char temp[300];
@@ -96,7 +99,7 @@ int main()
    					fgets(temp, 300, (FILE*)ip);
 					char address[300];
 					strcpy(address, "/usr/bin/");
-					strcpy(address, tokens->items[i+1]);
+					strcat(address, tokens->items[0]);
 					char *myargs [] = {address, temp};
 					int pid = fork();
                                         if(pid == 0)
@@ -111,6 +114,7 @@ int main()
                 	}
 			if(IsOutput(tokens->items[i]))
                         {
+				q++;
                                 if( access( tokens->items[i+1], F_OK ) == -1 )
                                 {
 					char *myargs [] = {"/usr/bin/touch", tokens->items[i+1]};
@@ -143,12 +147,29 @@ int main()
                         }
 			if (IsPipe(tokens->items[i]))
 			{
-				
+				q++;
+				char address[300];
+				strcpy(address, "/usr/bin/");
+                                strcat(address, tokens->items[0]);
+				char address2[300];
+				strcpy(address2, "/usr/bin/");
+                                strcat(address2, tokens->items[i+1]);
+                                char *myargs [] = {address, tokens->items[i-1]};
+				char *myargs_2 [] = {address2, tokens->items[i-1]};
+				int pid_1 = fork();
+				int pid_2 = fork();
+                                if(pid_1 == 0)
+                             		execv(myargs[0], myargs);
+                         	else
+					if(pid_2 == 0)
+						execv(myargs_2[0], myargs_2);
+					else							
+                            			exit(0);
 			}
 					   // and copy to token list.
 		//	printf("ToKeN %d: (%s)\n", i, tokens->items[i]);
 		}
-
+	if(q == 0)
 		if(execute && !IsDir(tokens->items[0])) //If no token errors yet...
 		{										//Begin COMMAND EXPANSION.
 			char *dirPaths = (char *) malloc(sizeof(char) * (strlen(getenv("PATH")) + 1));

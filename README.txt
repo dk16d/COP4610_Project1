@@ -26,3 +26,7 @@ Darren Kopacz:
 * Added function prototypes and codeblock structure for PART 5.
 * Included error checking for environment variables.
 * Reworked Part 1 through Part 4 to save all expansions in token list.
+
+Valion Joyce:
+* Did the implemenation and optimization of code and for parts 1,2,3,4,5,7,8.
+* optomized the makefile 
