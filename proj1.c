@@ -32,46 +32,46 @@ int main()
 	bool execute = true;                                       //Flag is set false on invalid command.
 	bool runBackground = false;								   //Set true on '&' (background process).
 	int parray[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-	
+	char oldInput[128];
 	while (1) {     
 
 //FOR PIPING/REDIRECTION, may need an if( redirecting() ) encapsulating the
 // printf commandline and command-expansion loop. That way we can make use
 // of the main while loop to feed one process into another...
-
+		
+		if(runBackground == true)
+		{
+			for (int j = 0; j < 10; j++)
+			{		
+				if(parray[j] == -1)     //if -1, slot is empty don't do anything
+					break;
+				else
+				{
+					int status = waitpid(parray[j], NULL, WNOHANG);
+					//check if child is finished or if its still running
+					if (status != 0)        //tells if process is finished or not
+					{
+						//print - process is finished
+						printf("[%d]+ done\t\t", j+1);
+						printf("%s\t\t\n", oldInput);            //print whole command line need to get rid of &
+						runBackground = false;
+					}
+					else //process is still running
+					{
+						//do nothing
+					}
+				}
+			}
+		}
+		printf("%s@%s:%s> ", getenv("USER"), getenv("HOST"), getenv("PWD"));
 		char *input = get_input();
 		tokenlist *tokens = get_tokens(input);
 		tokenlist *args = new_tokenlist();			//THIS IS BACKGROUND arguments.
 		//printf("whole input: %s\n", input);
 		
-		for (int j = 0; j < 10; j++)
-		{		
-			if(parray[j] == -1)     //if -1, slot is empty don't do anything
-					break;
-			else
-			{
-				int status = waitpid(parray[j], NULL, WNOHANG);
-				//check if child is finished or if its still running
-				if (status != 0)        //tells if process is finished or not
-				{
-					//print - process is finished
-					printf("[%d]+ done\t\t", j+1);
-					printf("%s\t\t", input);            //print whole command line need to get rid of &
-					runBackground = false;
-				}
-				else //process is still running
-				{
-					//do nothing
-				}
-			
-			}
-		}
-		
-		printf("%s@%s:%s> ", getenv("USER"), getenv("HOST"), getenv("PWD"));
 																				   /*PART 3 - Prints user's working directory*/
 		if (strchr(input, '&') != NULL)         //& EXISTS, IS BACKGROUND PROCESS
 		{
-			printf("is background process\n");
 			runBackground = true;
 			
 			int j;
@@ -257,7 +257,9 @@ int main()
 						int pid = fork();
 						parray[j] = getpid();
 						
+						printf("[%d]  [%d]\n", j+1, pid);
 						if(pid == 0)
+							
 							execv(args->items[0], args->items);
 						break;
 					}
@@ -266,6 +268,10 @@ int main()
 			else
 				printf("%s: Command not found.\n");
 		}
+		
+		if(runBackground)
+			strncpy(oldInput, input, 127);				//Save this runs input for bg processing.
+		
 		free(dirPaths);
 		free(args);									//Free the background arguments.
 		free(input);
