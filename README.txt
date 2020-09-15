@@ -51,7 +51,7 @@ Valion Joyce:
 
 Riley Corey:
 * Implementations for Part 6,9
-* (Part 10) Built in - echo
+* (Part 10) Built in - echo, exit
 * Documented instructions and pseudocode for path search & background processing.
 * Attempted optimization for background processing with Darren.
 * Wrote original makefile
