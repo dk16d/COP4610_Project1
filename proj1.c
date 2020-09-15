@@ -31,20 +31,44 @@ int main()
 {
 	bool execute = true;                                       //Flag is set false on invalid command.
 	bool runBackground = false;								   //Set true on '&' (background process).
+	int parray[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 	
 	while (1) {     
 
 //FOR PIPING/REDIRECTION, may need an if( redirecting() ) encapsulating the
 // printf commandline and command-expansion loop. That way we can make use
 // of the main while loop to feed one process into another...
-	
-		printf("%s@%s:%s> ", getenv("USER"), getenv("HOST"), getenv("PWD"));
-																				   /*PART 3 - Prints user's working directory*/
+
 		char *input = get_input();
 		tokenlist *tokens = get_tokens(input);
 		tokenlist *args = new_tokenlist();			//THIS IS BACKGROUND arguments.
 		//printf("whole input: %s\n", input);
 		
+		for (int j = 0; j < 10; j++)
+		{		
+			if(parray[j] == -1)     //if -1, slot is empty don't do anything
+					break;
+			else
+			{
+				int status = waitpid(parray[j], NULL, WNOHANG);
+				//check if child is finished or if its still running
+				if (status != 0)        //tells if process is finished or not
+				{
+					//print - process is finished
+					printf("[%d]+ done\t\t", j+1);
+					printf("%s\t\t", input);            //print whole command line need to get rid of &
+					runBackground = false;
+				}
+				else //process is still running
+				{
+					//do nothing
+				}
+			
+			}
+		}
+		
+		printf("%s@%s:%s> ", getenv("USER"), getenv("HOST"), getenv("PWD"));
+																				   /*PART 3 - Prints user's working directory*/
 		if (strchr(input, '&') != NULL)         //& EXISTS, IS BACKGROUND PROCESS
 		{
 			printf("is background process\n");
@@ -159,90 +183,90 @@ int main()
 	//      printf("ToKeN %d: (%s)\n", i, tokens->items[i]);
 		}
 
+		char *dirPaths = (char *) malloc(sizeof(char) * (strlen(getenv("PATH")) + 1));
+			strcpy(dirPaths, getenv("PATH"));       //Make safe copy of paths.
+		char *path = strtok(dirPaths, ":"); //Assign first possible path.
+		char cmd[16];                                           //Temporary store token[0]
+
 		if(!runBackground && execute && !IsDir(tokens->items[0])) //If no token errors yet...
-		{                                                                               //Begin COMMAND EXPANSION.
-				char *dirPaths = (char *) malloc(sizeof(char) * (strlen(getenv("PATH")) + 1));
-				strcpy(dirPaths, getenv("PATH"));       //Make safe copy of paths.
-				char *path = strtok(dirPaths, ":"); //Assign first possible path.
-				char cmd[16];                                           //Temporary store token[0]
-				strncpy(cmd, tokens->items[0], 15); // into cmd.
-				bool pathFound = false;
+		{                                                         //Begin COMMAND EXPANSION.
+			strncpy(cmd, tokens->items[0], 15); // into cmd.
+			bool pathFound = false;
+			
+			while(path != NULL)                                     //Check paths until cmd is found.
+			{                                                                       //Temporarily save command token[0].
+				tokens->items[0] = (char *) realloc(tokens->items[0],
+						sizeof(char) * (strlen(path) + strlen(cmd) + 2));
+				strcpy(tokens->items[0], path); //After alloc'ing for concatenation,
+				strcat(tokens->items[0], "/");  // concatenate "/cmd" onto token.
+				strcat(tokens->items[0], cmd);
+		//      printf("CONCAT'D PATH IS: %s\n", tokens->items[0]);
 				
-				while(path != NULL)                                     //Check paths until cmd is found.
-				{                                                                       //Temporarily save command token[0].
-						tokens->items[0] = (char *) realloc(tokens->items[0],
-								sizeof(char) * (strlen(path) + strlen(cmd) + 2));
-						strcpy(tokens->items[0], path); //After alloc'ing for concatenation,
-						strcat(tokens->items[0], "/");  // concatenate "/cmd" onto token.
-						strcat(tokens->items[0], cmd);
-				//      printf("CONCAT'D PATH IS: %s\n", tokens->items[0]);
-						
-						if(access(tokens->items[0], F_OK) == 0)         
-						{                                                               //IF command is found in path,
-								pathFound = true;                       // no more seaching needed!
-				//              printf("file exists at: %s\n", path);
-								break;
-						}
-						else                                                    //Else, not yet found, assign
-								path = strtok(NULL, ":");       // next path and try again.
+				if(access(tokens->items[0], F_OK) == 0)         
+				{                                                               //IF command is found in path,
+					pathFound = true;                       // no more seaching needed!
+	//              printf("file exists at: %s\n", path);
+					break;
 				}
+				else                                                    //Else, not yet found, assign
+					path = strtok(NULL, ":");       // next path and try again.
+			}
 				
-				if(pathFound)                                           //If found, execute it!
-				{                                                                       //Create child process. Since there
-						int pid = fork();                               // is now two processes running...
-						if(pid == 0)                                    //If child process, execute.
-								execv(tokens->items[0], tokens->items);
-						else                                                    //If parent (main), wait your turn.
-								waitpid(pid, NULL, 0);
-				}
-				else                                                            //ELSE, path was never found.
-						printf("%s: Command not found.\n");
-				
-				// if (strchr(input, '&') != NULL)         						//& EXISTS, IS BACKGROUND PROCESS
-					// {
-						// printf("is background process");
-						// for (int j = 0; j < 10; j++)
-						// {
-							// if (parray[j] == -1)
-							// {
-								// int pid = fork();
-								// parray[j] = getpid();
-
-								// //how do i execute background process???
-
-								// break;
-							// }
-						// }
-					// }
-
-
-
-					// //while other things are executing
-					// //after every prompt
-					// for (int j = 0; j < 10; j++)
-					// {
-							// if(parray[j] == -1)     //if -1, slot is empty don't do anything
-									// break;
-							// else{
-								// int status = waitpid(parray[j], NULL, WNOHANG);
-
-							// //check if child is finished or if its still running
-							// if (status != 0)        //tells if process is finished or not
-							// {
-
-									// //print - process is finished
-									// printf("[%d]+ Done\t\t", j+1);
-									// printf("%s\t\t", input);            //PRINT WHOLE COMMAND LINE NEED TO GET RID OF &
-							// }
-							// else //process is still running
-							// {
-									// //do nothing
-							// }
-							// }
-					// }//end while loop
-			free(dirPaths);
+			if(pathFound)                                           //If found, execute it!
+			{                                                                       //Create child process. Since there
+				int pid = fork();                               // is now two processes running...
+				if(pid == 0)                                    //If child process, execute.
+						execv(tokens->items[0], tokens->items);
+				else                                                    //If parent (main), wait your turn.
+						waitpid(pid, NULL, 0);
+			}
+			else                                                            //ELSE, path was never found.
+					printf("%s: Command not found.\n");
 		}
-		runBackground = false;						//Reset background process flag!
+		else if(runBackground && execute && !IsDir(args->items[0]))
+		{
+			strncpy(cmd, args->items[0], 15); // into cmd.
+			bool pathFound = false;
+			
+			while(path != NULL)                                     //Check paths until cmd is found.
+			{                                                       //Temporarily save command token[0].
+				args->items[0] = (char *) realloc(args->items[0],
+					sizeof(char) * (strlen(path) + strlen(cmd) + 2));
+				strcpy(args->items[0], path); //After alloc'ing for concatenation,
+				strcat(args->items[0], "/");  // concatenate "/cmd" onto token.
+				strcat(args->items[0], cmd);
+		//printf("CONCAT'D PATH IS: %s\n", args->items[0]);
+				
+				if(access(args->items[0], F_OK) == 0)         
+				{                                           //IF command is found in path,
+					pathFound = true;                       // no more seaching needed!
+	//printf("file exists at: %s\n", path);
+					break;
+				}
+				else                                //Else, not yet found, assign
+					path = strtok(NULL, ":");       // next path and try again.
+			}
+				
+			if(pathFound)
+			{
+				int j;									//Background execution parray loop!
+				for(j = 0; j < 10; j += 1)
+				{
+					if(parray[j] == -1)
+					{	
+						int pid = fork();
+						parray[j] = getpid();
+						
+						if(pid == 0)
+							execv(args->items[0], args->items);
+						break;
+					}
+				}
+			}
+			else
+				printf("%s: Command not found.\n");
+		}
+		free(dirPaths);
 		free(args);									//Free the background arguments.
 		free(input);
 		free_tokens(tokens);
